@@ -6,11 +6,31 @@ import android.os.Bundle;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.SearchView;
 import android.support.v7.widget.Toolbar;
+import android.util.Log;
 import android.view.Menu;
 import android.view.MenuInflater;
 import android.view.MenuItem;
+import android.widget.Toast;
 
-public class MainActivity extends AppCompatActivity {
+import java.util.HashMap;
+import java.util.Map;
+
+import kaaes.spotify.webapi.android.SpotifyApi;
+import kaaes.spotify.webapi.android.SpotifyCallback;
+import kaaes.spotify.webapi.android.SpotifyError;
+import kaaes.spotify.webapi.android.SpotifyService;
+import kaaes.spotify.webapi.android.models.Artist;
+import kaaes.spotify.webapi.android.models.Artists;
+import kaaes.spotify.webapi.android.models.ArtistsPager;
+import kaaes.spotify.webapi.android.models.Pager;
+import retrofit.Callback;
+import retrofit.RetrofitError;
+import retrofit.client.Response;
+
+public class MainActivity extends AppCompatActivity implements Callback<ArtistsPager>  {
+
+    SpotifyService spotService = null;
+    SpotifyApi spotApi = null;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -19,6 +39,10 @@ public class MainActivity extends AppCompatActivity {
 
         Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
+
+        // Init the spotify web wrapper
+        spotApi = new SpotifyApi();
+        spotService = spotApi.getService();
 
 
 
@@ -36,9 +60,29 @@ public class MainActivity extends AppCompatActivity {
 
         SearchManager searchManager = (SearchManager) MainActivity.this.getSystemService(Context.SEARCH_SERVICE);
 
+
+        //final Map<String, Object> map = new HashMap<String, Object>();
+
         SearchView searchView = null;
         if (searchItem != null) {
             searchView = (SearchView) searchItem.getActionView();
+            searchView.setOnQueryTextListener(new SearchView.OnQueryTextListener() {
+                @Override
+                public boolean onQueryTextSubmit(String query) {
+
+                    Toast.makeText(MainActivity.this, "You entered: " + query, Toast.LENGTH_SHORT).show();
+                    spotService.searchArtists(query, MainActivity.this);
+
+                    return true;
+                }
+
+                @Override
+                public boolean onQueryTextChange(String newText) {
+                    Log.e("You typed: ", newText);
+
+                    return false;
+                }
+            });
         }
         if (searchView != null) {
             searchView.setSearchableInfo(searchManager.getSearchableInfo(MainActivity.this.getComponentName()));
@@ -49,9 +93,6 @@ public class MainActivity extends AppCompatActivity {
 
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
-        // Handle action bar item clicks here. The action bar will
-        // automatically handle clicks on the Home/Up button, so long
-        // as you specify a parent activity in AndroidManifest.xml.
         int id = item.getItemId();
 
         //noinspection SimplifiableIfStatement
@@ -60,5 +101,17 @@ public class MainActivity extends AppCompatActivity {
         }
 
         return super.onOptionsItemSelected(item);
+    }
+
+
+    @Override
+    public void success(ArtistsPager artistsPager, Response response) {
+        Log.e("Success: " + response.getStatus(), Integer.toString(artistsPager.artists.items.size()));
+
+    }
+
+    @Override
+    public void failure(RetrofitError error) {
+        Log.e("Failed: " + error.getResponse(), error.getBody().toString());
     }
 }
